@@ -1,5 +1,5 @@
 #!/bin/bash
-# --- bitcoin mainnet: f9beb4d9 (db = 0) ---
+
 mkdir -p log/bitcoin/
 python -u crawl.py conf/bitcoin/crawl.conf master > log/bitcoin/crawl.master.out 2>&1 &
 python -u crawl.py conf/bitcoin/crawl.conf slave > log/bitcoin/crawl.slave.1.out 2>&1 &

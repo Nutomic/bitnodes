@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# export.py - Exports enumerated data for reachable nodes into a JSON file.
+# export.py - Exports enumerated data for reachable nodes into CSV and TXT files
 #
 # Copyright (c) Addy Yeow Chin Heng <ayeowch@gmail.com>
 #
@@ -25,16 +25,16 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
-Exports enumerated data for reachable nodes into a JSON file.
+Exports enumerated data for reachable nodes into CSV and TXT files.
 """
 
-import json
 import logging
 import os
 import sys
 import time
 from binascii import hexlify, unhexlify
 from ConfigParser import ConfigParser
+import csv
 
 from utils import new_redis_conn
 
@@ -74,20 +74,33 @@ def get_row(node):
 def export_nodes(nodes, timestamp):
     """
     Merges enumerated data for the specified nodes and exports them into
-    timestamp-prefixed JSON file.
+    timestamp-prefixed CSV and TXT files.
     """
-    rows = []
     start = time.time()
-    for node in nodes:
-        row = get_row(node)
-        rows.append(row)
+    base_path = os.path.join(CONF['export_dir'], "{}".format(timestamp))
+    csv_path = base_path + ".csv"
+    txt_path = base_path + ".txt"
+    with csv.writer(open(csv_path, 'a'), delimiter=",", quoting=csv.QUOTE_MINIMAL) as csv_file, \
+            csv.writer(open(txt_path, 'a'), delimiter=" ", quoting=csv.QUOTE_MINIMAL) as txt_file:
+        for node in nodes:
+            row = get_row(node)
+            output_data = [
+                "{}:{}".format(row[0], row[1]), # IP_addr:port
+                row[6],                         # last_block
+                row[2],                         # protocol_version
+                row[3],                         # client_version
+                row[9],                         # country
+                row[12],                        # city
+                row[14]]                        # ISP cloud
+
+            csv_file.writerow(output_data)
+            txt_file.writerow(output_data)
+
     end = time.time()
     elapsed = end - start
     logging.info("Elapsed: %d", elapsed)
 
-    dump = os.path.join(CONF['export_dir'], "{}.json".format(timestamp))
-    open(dump, 'w').write(json.dumps(rows, encoding="latin-1"))
-    logging.info("Wrote %s", dump)
+    logging.info("Wrote %s and %s", csv_path, txt_path)
 
 
 def init_conf(argv):

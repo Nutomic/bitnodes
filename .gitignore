@@ -10,3 +10,4 @@ geoip/*.dat
 geoip/*.mmdb
 geoip/*.txt
 rsync.sh
+venv/

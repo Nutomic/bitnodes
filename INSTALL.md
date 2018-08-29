@@ -28,7 +28,7 @@ and use a key pair instead.
 
     # apt-get update
     # apt-get upgrade
-    # apt-get install build-essential python-dev python-virtualenv
+    # apt-get install build-essential python-dev python-pip python-setuptools tor git
 
 #### Adjust various config files
 
@@ -81,6 +81,7 @@ Ready, now restart the server
 
     # apt-get install redis-server
     # nano /etc/redis/redis.conf
+        unixsocket /var/run/redis/redis.sock
         unixsocketperm 777
         #save 900 1
         #save 300 10
@@ -111,9 +112,7 @@ This is only required if you use a different path for the Redis socket, or if yo
 #### Launch Crawler
 
     git clone https://github.com/Nutomic/bitnodes.git
-    virtualenv ~/.virtualenvs/bitnodes
-    source ~/.virtualenvs/bitnodes/bin/activate
-    cd bitnodes-master
+    cd bitnodes/
     pip install -r requirements.txt
     bash geoip/update.sh
     bash start.sh

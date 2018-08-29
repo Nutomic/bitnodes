@@ -80,8 +80,9 @@ def export_nodes(nodes, timestamp):
     base_path = os.path.join(CONF['export_dir'], "{}".format(timestamp))
     csv_path = base_path + ".csv"
     txt_path = base_path + ".txt"
-    with csv.writer(open(csv_path, 'a'), delimiter=",", quoting=csv.QUOTE_MINIMAL) as csv_file, \
-            csv.writer(open(txt_path, 'a'), delimiter=" ", quoting=csv.QUOTE_MINIMAL) as txt_file:
+    with open(csv_path, 'a') as csv_file, open(txt_path, 'a') as txt_file:
+        csv_writer = csv.writer(csv_file, delimiter=",", quoting=csv.QUOTE_MINIMAL)
+        txt_writer = csv.writer(txt_file, delimiter=" ", quoting=csv.QUOTE_MINIMAL)
         for node in nodes:
             row = get_row(node)
             output_data = [
@@ -93,8 +94,8 @@ def export_nodes(nodes, timestamp):
                 row[12],                        # city
                 row[14]]                        # ISP cloud
 
-            csv_file.writerow(output_data)
-            txt_file.writerow(output_data)
+            csv_writer.writerow(output_data)
+            txt_writer.writerow(output_data)
 
     end = time.time()
     elapsed = end - start

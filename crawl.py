@@ -289,6 +289,7 @@ def task():
             while REDIS_CONN.get('crawl:master:state') != "running":
                 gevent.sleep(CONF['socket_timeout'])
 
+        gevent.sleep(5)
         node = redis_conn.spop('pending')  # Pop random node from set
         if node is None:
             gevent.sleep(1)

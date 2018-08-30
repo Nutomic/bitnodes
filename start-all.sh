@@ -1,5 +1,5 @@
 #!/bin/bash
 set -e
 
-./start-bitcoin.sh
-./start-bitcoincash.sh
+./start-coin.sh bitcoin
+./start-coin.sh bitcoincash

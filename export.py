@@ -34,7 +34,7 @@ import sys
 import time
 from binascii import hexlify, unhexlify
 from ConfigParser import ConfigParser
-import csv
+import unicodecsv as csv
 
 from utils import new_redis_conn
 
@@ -81,8 +81,8 @@ def export_nodes(nodes, timestamp):
     csv_path = base_path + ".csv"
     txt_path = base_path + ".txt"
     with open(csv_path, 'a') as csv_file, open(txt_path, 'a') as txt_file:
-        csv_writer = csv.writer(csv_file, delimiter=",", quoting=csv.QUOTE_MINIMAL)
-        txt_writer = csv.writer(txt_file, delimiter=" ", quoting=csv.QUOTE_MINIMAL)
+        csv_writer = csv.writer(csv_file, delimiter=",", quoting=csv.QUOTE_MINIMAL, encoding='utf-8')
+        txt_writer = csv.writer(txt_file, delimiter=" ", quoting=csv.QUOTE_MINIMAL, encoding='utf-8')
         for node in nodes:
             row = get_row(node)
             output_data = [

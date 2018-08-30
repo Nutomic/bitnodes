@@ -83,9 +83,6 @@ Ready, now restart the server
     # nano /etc/redis/redis.conf
         unixsocket /var/run/redis/redis.sock
         unixsocketperm 777
-        #save 900 1
-        #save 300 10
-        #save 60 10000
         maxclients 50000
         # 12 GB, adjust according to your RAM size.
         maxmemory 8589934592

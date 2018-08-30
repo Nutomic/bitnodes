@@ -259,7 +259,6 @@ def cron():
         try:
             dump = max(glob.iglob("{}/*.json".format(CONF['export_dir'])))
         except ValueError as err:
-            logging.warning(err)
             continue
         logging.info("Dump: %s", dump)
         seeder.export_nodes(dump)

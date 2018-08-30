@@ -237,7 +237,6 @@ def cron():
         try:
             oldest = min(glob.iglob("{}/*.pcap".format(CONF['pcap_dir'])))
         except ValueError as err:
-            logging.warning(err)
             continue
         latest = max(glob.iglob("{}/*.pcap".format(CONF['pcap_dir'])))
         if oldest == latest:

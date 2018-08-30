@@ -302,7 +302,6 @@ def cron(pool):
             pool.spawn(task)
 
         workers = CONF['workers'] - pool.free_count()
-        logging.info("Workers: %d", workers)
 
         gevent.sleep(CONF['cron_delay'])
 
@@ -316,7 +315,7 @@ def get_snapshot():
     try:
         snapshot = max(glob.iglob("{}/*.json".format(CONF['crawl_dir'])))
     except ValueError as err:
-        logging.warning(err)
+        pass
     return snapshot
 
 

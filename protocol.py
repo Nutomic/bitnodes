@@ -244,6 +244,7 @@ class Serializer(object):
     def __init__(self, **conf):
         self.magic_number = conf.get('magic_number', MAGIC_NUMBER)
         self.protocol_version = conf.get('protocol_version', PROTOCOL_VERSION)
+        self.min_protocol_version = conf.get('min_protocol_version', MIN_PROTOCOL_VERSION)
         self.to_services = conf.get('to_services', TO_SERVICES)
         self.from_services = conf.get('from_services', FROM_SERVICES)
         self.user_agent = conf.get('user_agent', USER_AGENT)
@@ -367,9 +368,9 @@ class Serializer(object):
         data = StringIO(data)
 
         msg['version'] = unpack("<i", data.read(4))
-        if msg['version'] < MIN_PROTOCOL_VERSION:
+        if msg['version'] < self.min_protocol_version:
             raise IncompatibleClientError("{} < {}".format(
-                msg['version'], MIN_PROTOCOL_VERSION))
+                msg['version'], self.min_protocol_version))
 
         msg['services'] = unpack("<Q", data.read(8))
         msg['timestamp'] = unpack("<q", data.read(8))

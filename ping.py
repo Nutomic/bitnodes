@@ -314,7 +314,7 @@ def get_snapshot():
     snapshot = None
     try:
         snapshot = max(glob.iglob("{}/*.json".format(CONF['crawl_dir'])))
-    except ValueError as err:
+    except ValueError:
         pass
     return snapshot
 

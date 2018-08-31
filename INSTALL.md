@@ -108,8 +108,8 @@ This is only required if you use a different path for the Redis socket, or if yo
 
 #### Launch Crawler
 
-    git clone https://github.com/Nutomic/bitnodes.git
-    cd bitnodes/
+    git clone https://github.com/Nutomic/coincrawler.git
+    cd coincrawler/
     pip install -r requirements.txt
     bash geoip/update.sh
     bash start.sh

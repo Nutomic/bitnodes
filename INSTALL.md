@@ -2,7 +2,7 @@
 
 Required specifications:
 - high bandwidth and low latency
-- at least 2 GB of RAM
+- at least 8 GB of RAM (plus swap)
 - at least 4 CPU cores
 
 For security reasons, it is recommended that you use a seperate user account
@@ -61,13 +61,13 @@ and use a key pair instead.
         vm.swappiness=10
         vm.min_free_kbytes=1048576
         vm.overcommit_memory=1
-        
+
     # nano /etc/security/limits.conf
         * soft nofile 1000000
         * hard nofile 1000000
         # If you are running as root, you need to specify this explicitly
         root soft nofile 1000000
-    
+
     # /etc/rc.local
         echo never > /sys/kernel/mm/transparent_hugepage/enabled
         echo never > /sys/kernel/mm/transparent_hugepage/defrag
@@ -92,19 +92,19 @@ Ready, now restart the server
         client-output-buffer-limit slave 512mb 256mb 300
         client-output-buffer-limit pubsub 512mb 256mb 300
         hz 20
-        
 
-#### Costumize Redis parameters
+#### Install Dash Full Node
 
-This is only required if you use a different path for the Redis socket, or if you set a password for Redis.
+    # apt-get install python git unzip pv
+    # git clone https://github.com/moocowmoo/dashman
+    # ./dashman/dashman install
 
-    nano ~/.bashrc
-    export REDIS_SOCKET=/var/run/redis/redis.sock
-    export REDIS_PASSWORD=[PASSWORD]
+Then wait until `./.dashcore/dash-cli mnsync status` shows "MASTERNODE_SYNC_FINISHED".
+Depending on your hardware and internet connection, this will take roughly 30 minutes.
 
 #### Reboot Server
 
-    sudo reboot
+    # reboot
 
 #### Launch Crawler
 

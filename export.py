@@ -33,8 +33,10 @@ import os
 import sys
 import time
 from binascii import hexlify, unhexlify
-from ConfigParser import ConfigParser
+from ConfigParser import ConfigParser, NoOptionError
 import unicodecsv as csv
+import subprocess
+import json
 
 from utils import new_redis_conn
 
@@ -71,6 +73,11 @@ def get_row(node):
     return node + height + hostname + geoip
 
 
+def get_dash_masternodes():
+    output = subprocess.check_output([CONF['dash_cli_path'], 'masternode', 'list', 'json', 'ENABLED'])
+    json_output = json.loads(output)
+    return map(lambda item: item['address'], json_output.itervalues())
+
 def export_nodes(nodes, timestamp):
     """
     Merges enumerated data for the specified nodes and exports them into
@@ -80,6 +87,13 @@ def export_nodes(nodes, timestamp):
     base_path = os.path.join(CONF['export_dir'], "{}".format(timestamp))
     csv_path = base_path + ".csv"
     txt_path = base_path + ".txt"
+    if CONF['dash_cli_path'] is not None:
+        dash_masternodes = get_dash_masternodes()
+        is_dash = True
+    else:
+        dash_masternodes = []
+        is_dash = False
+
     with open(csv_path, 'a') as csv_file, open(txt_path, 'a') as txt_file:
         csv_writer = csv.writer(csv_file, delimiter=",", quoting=csv.QUOTE_MINIMAL, encoding='utf-8')
         txt_writer = csv.writer(txt_file, delimiter=" ", quoting=csv.QUOTE_MINIMAL, encoding='utf-8')
@@ -93,6 +107,10 @@ def export_nodes(nodes, timestamp):
                 row[9],                         # country
                 row[12],                        # city
                 row[14]]                        # ISP cloud
+
+            if is_dash:
+                is_masternode = output_data[0] in dash_masternodes
+                output_data.append(1 if is_masternode else 0)
 
             csv_writer.writerow(output_data)
             txt_writer.writerow(output_data)
@@ -115,6 +133,11 @@ def init_conf(argv):
     CONF['db'] = conf.getint('export', 'db')
     CONF['debug'] = conf.getboolean('export', 'debug')
     CONF['export_dir'] = conf.get('export', 'export_dir')
+    try:
+        CONF['dash_cli_path'] = conf.get('export', 'dash_cli_path')
+    except NoOptionError:
+        CONF['dash_cli_path'] = None
+
     if not os.path.exists(CONF['export_dir']):
         os.makedirs(CONF['export_dir'])
 

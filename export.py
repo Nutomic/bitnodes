@@ -35,8 +35,8 @@ import time
 from binascii import hexlify, unhexlify
 from ConfigParser import ConfigParser, NoOptionError
 import unicodecsv as csv
-import subprocess
 import json
+import urllib
 
 from utils import new_redis_conn
 
@@ -74,9 +74,12 @@ def get_row(node):
 
 
 def get_dash_masternodes():
-    output = subprocess.check_output([CONF['dash_cli_path'], 'masternode', 'list', 'json', 'ENABLED'])
-    json_output = json.loads(output)
-    return map(lambda item: item['address'], json_output.itervalues())
+    url = CONF['dash_insight_api'] + '/masternodes/list'
+    response = urllib.urlopen(url)
+    masternodes = json.loads(response.read())
+    enabled_masternodes = filter(lambda item: item['status'] == 'ENABLED', masternodes)
+    return map(lambda item: item['ip'], enabled_masternodes)
+
 
 def export_nodes(nodes, timestamp):
     """
@@ -87,7 +90,7 @@ def export_nodes(nodes, timestamp):
     base_path = os.path.join(CONF['export_dir'], "{}".format(timestamp))
     csv_path = base_path + ".csv"
     txt_path = base_path + ".txt"
-    if CONF['dash_cli_path'] is not None:
+    if CONF['dash_insight_api'] is not None:
         dash_masternodes = get_dash_masternodes()
         is_dash = True
     else:
@@ -134,9 +137,9 @@ def init_conf(argv):
     CONF['debug'] = conf.getboolean('export', 'debug')
     CONF['export_dir'] = conf.get('export', 'export_dir')
     try:
-        CONF['dash_cli_path'] = conf.get('export', 'dash_cli_path')
+        CONF['dash_insight_api'] = conf.get('export', 'dash_insight_api')
     except NoOptionError:
-        CONF['dash_cli_path'] = None
+        CONF['dash_insight_api'] = None
 
     if not os.path.exists(CONF['export_dir']):
         os.makedirs(CONF['export_dir'])

@@ -1,26 +1,18 @@
-![Bitnodes](https://bitnodes.earn.com/static/img/bitnodes-github.png "Bitnodes")
+Coincrawler
+===========
 
-Bitnodes is currently being developed to estimate the size of the Bitcoin network by finding all
-the reachable nodes in the network. The current methodology involves sending
-[getaddr](https://en.bitcoin.it/wiki/Protocol_specification#getaddr) messages recursively to find
-all the reachable nodes in the network, starting from a set of seed nodes. Bitnodes uses Bitcoin
-protocol version 70001 (i.e. >= /Satoshi:0.8.x/), so nodes running an older protocol version will
-be skipped.
+Coincrawler is a network crawler for multiple Bitcoin-based cryptocurrencies.
+At the moment, it includes configurations for Bitcoin, Bitcoin Cash, Dash
+and Litecoin. The project is forked from
+[Bitnodes](https://github.com/ayeowch/bitnodes).
 
-* [Network Snapshot](https://bitnodes.earn.com/nodes/)
+See the [installation instructions](INSTALL.md) for steps on setting up a
+machine to run Coincrawler. The
+[Redis Data](https://github.com/ayeowch/bitnodes/wiki/Redis-Data) contains
+the list of keys and their associated values that are written by the scripts
+in this project.
 
-* [24-hour Charts](https://bitnodes.earn.com/dashboard/)
+License
+-------
 
-* [Live Map](https://bitnodes.earn.com/nodes/live-map/)
-
-* [Network Map](https://bitnodes.earn.com/nodes/network-map/)
-
-* [New Transactions](https://bitnodes.earn.com/dashboard/transactions/)
-
-* [Leaderboard](https://bitnodes.earn.com/nodes/leaderboard/)
-
-See the [installation instructions](INSTALL.md) for steps on setting up a machine to run Bitnodes.
-The [Redis Data](https://github.com/ayeowch/bitnodes/wiki/Redis-Data) contains the list of keys and
-their associated values that are written by the scripts in this project. If you wish to access the
-data, e.g. network snapshots, collected using this project, see
-[Bitnodes API v1.0](https://bitnodes.earn.com/api/).
+The project is licensed under the [MIT license](LICENSE).

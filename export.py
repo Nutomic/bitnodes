@@ -98,8 +98,8 @@ def export_nodes(nodes, timestamp):
         is_dash = False
 
     with open(csv_path, 'a') as csv_file, open(txt_path, 'a') as txt_file:
-        csv_writer = csv.writer(csv_file, delimiter=",", quoting=csv.QUOTE_MINIMAL, encoding='utf-8')
-        txt_writer = csv.writer(txt_file, delimiter=" ", quoting=csv.QUOTE_MINIMAL, encoding='utf-8')
+        csv_writer = csv.writer(csv_file, delimiter=",", quoting=csv.QUOTE_NONNUMERIC, encoding='utf-8')
+        txt_writer = csv.writer(txt_file, delimiter=" ", quoting=csv.QUOTE_NONNUMERIC, encoding='utf-8')
         for node in nodes:
             row = get_row(node)
             output_data = [

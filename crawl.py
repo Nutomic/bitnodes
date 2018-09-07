@@ -442,17 +442,17 @@ def init_conf(argv):
     """
     conf = ConfigParser()
     conf.read(argv[1])
+    CONF['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
+    CONF['user_agent'] = conf.get('general', 'user_agent')
+    CONF['port'] = conf.getint('general', 'port')
+    CONF['db'] = conf.getint('general', 'db')
+    CONF['protocol_version'] = conf.getint('general', 'protocol_version')
+    CONF['services'] = conf.getint('general', 'services')
     CONF['logfile'] = conf.get('crawl', 'logfile')
-    CONF['magic_number'] = unhexlify(conf.get('crawl', 'magic_number'))
-    CONF['port'] = conf.getint('crawl', 'port')
-    CONF['db'] = conf.getint('crawl', 'db')
     CONF['seeders'] = conf.get('crawl', 'seeders').strip().split("\n")
     CONF['workers'] = conf.getint('crawl', 'workers')
     CONF['debug'] = conf.getboolean('crawl', 'debug')
     CONF['source_address'] = conf.get('crawl', 'source_address')
-    CONF['protocol_version'] = conf.getint('crawl', 'protocol_version')
-    CONF['user_agent'] = conf.get('crawl', 'user_agent')
-    CONF['services'] = conf.getint('crawl', 'services')
     CONF['relay'] = conf.getint('crawl', 'relay')
     CONF['socket_timeout'] = conf.getint('crawl', 'socket_timeout')
     CONF['cron_delay'] = conf.getint('crawl', 'cron_delay')
@@ -476,10 +476,10 @@ def init_conf(argv):
 
     CONF['initial_exclude_ipv4_networks'] = CONF['exclude_ipv4_networks']
 
-    CONF['onion'] = conf.getboolean('crawl', 'onion')
+    CONF['onion'] = conf.getboolean('general', 'onion')
     CONF['tor_proxy'] = None
     if CONF['onion']:
-        tor_proxy = conf.get('crawl', 'tor_proxy').split(":")
+        tor_proxy = conf.get('general', 'tor_proxy').split(":")
         CONF['tor_proxy'] = (tor_proxy[0], int(tor_proxy[1]))
     CONF['onion_nodes'] = conf.get('crawl', 'onion_nodes').strip().split("\n")
 

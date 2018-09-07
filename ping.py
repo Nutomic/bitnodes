@@ -379,15 +379,15 @@ def init_conf(argv):
     """
     conf = ConfigParser()
     conf.read(argv[1])
+    CONF['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
+    CONF['db'] = conf.getint('general', 'db')
+    CONF['user_agent'] = conf.get('general', 'user_agent')
+    CONF['services'] = conf.getint('general', 'services')
+    CONF['protocol_version'] = conf.getint('general', 'protocol_version')
     CONF['logfile'] = conf.get('ping', 'logfile')
-    CONF['magic_number'] = unhexlify(conf.get('ping', 'magic_number'))
-    CONF['db'] = conf.getint('ping', 'db')
     CONF['workers'] = conf.getint('ping', 'workers')
     CONF['debug'] = conf.getboolean('ping', 'debug')
     CONF['source_address'] = conf.get('ping', 'source_address')
-    CONF['protocol_version'] = conf.getint('ping', 'protocol_version')
-    CONF['user_agent'] = conf.get('ping', 'user_agent')
-    CONF['services'] = conf.getint('ping', 'services')
     CONF['relay'] = conf.getint('ping', 'relay')
     CONF['socket_timeout'] = conf.getint('ping', 'socket_timeout')
     CONF['cron_delay'] = conf.getint('ping', 'cron_delay')
@@ -396,10 +396,10 @@ def init_conf(argv):
     CONF['nodes_per_ipv6_prefix'] = conf.getint('ping',
                                                 'nodes_per_ipv6_prefix')
 
-    CONF['onion'] = conf.getboolean('ping', 'onion')
+    CONF['onion'] = conf.getboolean('general', 'onion')
     CONF['tor_proxy'] = None
     if CONF['onion']:
-        tor_proxy = conf.get('ping', 'tor_proxy').split(":")
+        tor_proxy = conf.get('general', 'tor_proxy').split(":")
         CONF['tor_proxy'] = (tor_proxy[0], int(tor_proxy[1]))
 
     CONF['crawl_dir'] = conf.get('ping', 'crawl_dir')

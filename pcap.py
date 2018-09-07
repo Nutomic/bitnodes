@@ -269,15 +269,15 @@ def init_conf(argv):
     """
     conf = ConfigParser()
     conf.read(argv[1])
+    CONF['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
+    CONF['db'] = conf.getint('general', 'db')
     CONF['logfile'] = conf.get('pcap', 'logfile')
-    CONF['magic_number'] = unhexlify(conf.get('pcap', 'magic_number'))
-    CONF['db'] = conf.getint('pcap', 'db')
     CONF['debug'] = conf.getboolean('pcap', 'debug')
     CONF['ttl'] = conf.getint('pcap', 'ttl')
     CONF['rtt_count'] = conf.getint('pcap', 'rtt_count')
     CONF['inv_count'] = conf.getint('pcap', 'inv_count')
 
-    tor_proxy = conf.get('pcap', 'tor_proxy').split(":")
+    tor_proxy = conf.get('general', 'tor_proxy').split(":")
     CONF['tor_proxy'] = (tor_proxy[0], int(tor_proxy[1]))
 
     CONF['pcap_dir'] = conf.get('pcap', 'pcap_dir')

@@ -221,9 +221,9 @@ def init_conf(argv):
     """
     conf = ConfigParser()
     conf.read(argv[1])
+    CONF['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
+    CONF['db'] = conf.getint('general', 'db')
     CONF['logfile'] = conf.get('resolve', 'logfile')
-    CONF['magic_number'] = unhexlify(conf.get('resolve', 'magic_number'))
-    CONF['db'] = conf.getint('resolve', 'db')
     CONF['debug'] = conf.getboolean('resolve', 'debug')
     CONF['ttl'] = conf.getint('resolve', 'ttl')
 

@@ -270,9 +270,9 @@ def init_conf(argv):
     """
     conf = ConfigParser()
     conf.read(argv[1])
+    CONF['port'] = conf.getint('general', 'port')
+    CONF['db'] = conf.getint('general', 'db')
     CONF['logfile'] = conf.get('seeder', 'logfile')
-    CONF['port'] = conf.getint('seeder', 'port')
-    CONF['db'] = conf.getint('seeder', 'db')
     CONF['debug'] = conf.getboolean('seeder', 'debug')
     CONF['export_dir'] = conf.get('seeder', 'export_dir')
     CONF['min_age'] = conf.getint('seeder', 'min_age')

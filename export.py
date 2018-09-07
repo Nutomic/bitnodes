@@ -131,9 +131,9 @@ def init_conf(argv):
     """
     conf = ConfigParser()
     conf.read(argv[1])
+    CONF['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
+    CONF['db'] = conf.getint('general', 'db')
     CONF['logfile'] = conf.get('export', 'logfile')
-    CONF['magic_number'] = unhexlify(conf.get('export', 'magic_number'))
-    CONF['db'] = conf.getint('export', 'db')
     CONF['debug'] = conf.getboolean('export', 'debug')
     CONF['export_dir'] = conf.get('export', 'export_dir')
     try:

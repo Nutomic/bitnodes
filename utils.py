@@ -63,3 +63,8 @@ def ip_to_network(address, prefix):
     network = ip_network(unicode("{}/{}".format(address, prefix)),
                          strict=False)
     return "{}/{}".format(network.network_address, prefix)
+
+
+def create_folder_if_not_exists(path):
+    if not os.path.exists(path):
+        os.makedirs(path)

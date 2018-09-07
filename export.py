@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# export.py - Exports enumerated data for reachable nodes into CSV and TXT files
+# export.py - Stores scan result in SQLite database and exports it into csv/text files
 #
 # Copyright (c) Addy Yeow Chin Heng <ayeowch@gmail.com>
 #
@@ -37,6 +37,8 @@ from ConfigParser import ConfigParser, NoOptionError
 import unicodecsv as csv
 import json
 import urllib
+import sqlite3
+import utils
 
 from utils import new_redis_conn
 
@@ -73,55 +75,98 @@ def get_row(node):
     return node + height + hostname + geoip
 
 
-def get_dash_masternodes():
+def get_dash_masternode_addresses():
+    """
+    Returns IP:port list of all known masternodes (using the Dash Insight API)
+    """
     url = CONF['dash_insight_api'] + '/masternodes/list'
     response = urllib.urlopen(url)
     masternodes = json.loads(response.read())
     enabled_masternodes = filter(lambda item: item['status'] == 'ENABLED', masternodes)
     return map(lambda item: item['ip'], enabled_masternodes)
 
+def store_reachable_nodes(nodes, timestamp):
+    """
+    Stores all nodes that were discovered in the current crawl in an SQLite database
+    """
+    utils.create_folder_if_not_exists(os.path.dirname(CONF['storage_file']))
+    connection = sqlite3.connect(CONF['storage_file'])
+    cursor = connection.cursor()
 
-def export_nodes(nodes, timestamp):
+    cursor.execute('CREATE TABLE IF NOT EXISTS ' + CONF['coin_name'] + '_nodes ' +
+                   '(id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
+                   'coin_name TEXT NOT NULL, ' +
+                   'timestamp INT NOT NULL, ' +
+                   'last_block INT NOT NULL, ' +
+                   'node_address TEXT NOT NULL, '
+                   'protocol_version INT NOT NULL, ' +
+                   'client_version TEXT NOT NULL, ' +
+                   'country TEXT,' +
+                   'city TEXT, ' +
+                   'isp_cloud TEXT, ' +
+                   'is_masternode INT)')
+
+    if CONF['dash_insight_api'] is not None:
+        dash_masternodes = get_dash_masternode_addresses()
+        is_dash = True
+    else:
+        dash_masternodes = None
+        is_dash = False
+
+    for node in nodes:
+        row = get_row(node)
+        address = "{}:{}".format(row[0], row[1])
+        is_masternode = address in dash_masternodes if is_dash else None
+        cursor.execute('INSERT INTO ' + CONF['coin_name'] + '_nodes (coin_name, ' +
+                       'timestamp, last_block, node_address, protocol_version, ' +
+                       'client_version, country, city, isp_cloud, is_masternode) '
+                       'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                       [CONF['coin_name'], timestamp, row[6], address,
+                        row[2], row[3], row[9], row[12], row[14], is_masternode])
+
+    connection.commit()
+    connection.close()
+
+
+def export_nodes(timestamp):
     """
     Merges enumerated data for the specified nodes and exports them into
     timestamp-prefixed CSV and TXT files.
     """
-    start = time.time()
+    utils.create_folder_if_not_exists(CONF['export_dir'])
     base_path = os.path.join(CONF['export_dir'], "{}".format(timestamp))
     csv_path = base_path + ".csv"
     txt_path = base_path + ".txt"
-    if CONF['dash_insight_api'] is not None:
-        dash_masternodes = get_dash_masternodes()
-        is_dash = True
-    else:
-        dash_masternodes = []
-        is_dash = False
+
+    connection = sqlite3.connect(CONF['storage_file'])
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    # Select all nodes that have been online at least once in the last 24 hours
+    nodes_online_24h = cursor.execute('SELECT * ' +
+                                      'FROM ' + CONF['coin_name'] + '_nodes ' +
+                                      'WHERE timestamp >= ?', [timestamp - 24 * 60 * 60])
 
     with open(csv_path, 'a') as csv_file, open(txt_path, 'a') as txt_file:
         csv_writer = csv.writer(csv_file, delimiter=",", quoting=csv.QUOTE_NONNUMERIC, encoding='utf-8')
         txt_writer = csv.writer(txt_file, delimiter=" ", quoting=csv.QUOTE_NONNUMERIC, encoding='utf-8')
-        for node in nodes:
-            row = get_row(node)
+        for row in nodes_online_24h:
             output_data = [
-                "{}:{}".format(row[0], row[1]), # IP_addr:port
-                row[6],                         # last_block
-                row[2],                         # protocol_version
-                row[3],                         # client_version
-                row[9],                         # country
-                row[12],                        # city
-                row[14]]                        # ISP cloud
+                row['node_address'],
+                row['last_block'],
+                row['protocol_version'],
+                row['client_version'],
+                row['country'],
+                row['city'],
+                row['isp_cloud']]
 
-            if is_dash:
-                is_masternode = output_data[0] in dash_masternodes
-                output_data.append(1 if is_masternode else 0)
+            if row['is_masternode'] is not None:
+                output_data.append(row['is_masternode'])
 
             csv_writer.writerow(output_data)
             txt_writer.writerow(output_data)
 
-    end = time.time()
-    elapsed = end - start
-    logging.info("Elapsed: %d", elapsed)
-
+    connection.close()
     logging.info("Wrote %s and %s", csv_path, txt_path)
 
 
@@ -131,18 +176,17 @@ def init_conf(argv):
     """
     conf = ConfigParser()
     conf.read(argv[1])
+    CONF['coin_name'] = conf.get('general', 'coin_name')
     CONF['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
     CONF['db'] = conf.getint('general', 'db')
     CONF['logfile'] = conf.get('export', 'logfile')
     CONF['debug'] = conf.getboolean('export', 'debug')
     CONF['export_dir'] = conf.get('export', 'export_dir')
+    CONF['storage_file'] = conf.get('export', 'storage_file')
     try:
         CONF['dash_insight_api'] = conf.get('export', 'dash_insight_api')
     except NoOptionError:
         CONF['dash_insight_api'] = None
-
-    if not os.path.exists(CONF['export_dir']):
-        os.makedirs(CONF['export_dir'])
 
 
 def main(argv):
@@ -186,7 +230,8 @@ def main(argv):
             logging.info("Timestamp: %d", timestamp)
             nodes = REDIS_CONN.smembers('opendata')
             logging.info("Nodes: %d", len(nodes))
-            export_nodes(nodes, timestamp)
+            store_reachable_nodes(nodes, timestamp)
+            export_nodes(timestamp)
             REDIS_CONN.publish(publish_key, timestamp)
 
     return 0

@@ -48,6 +48,7 @@ from collections import Counter
 from ConfigParser import ConfigParser
 from geoip2.errors import AddressNotFoundError
 from ipaddress import ip_address, ip_network
+import utils
 
 from protocol import (
     ONION_PREFIX,
@@ -195,6 +196,7 @@ def dump(timestamp, nodes):
         logging.warning("len(json_data): %d", len(json_data))
         return 0
 
+    utils.create_folder_if_not_exists(CONF['crawl_dir'])
     json_output = os.path.join(CONF['crawl_dir'], "{}.json".format(timestamp))
     open(json_output, 'w').write(json.dumps(json_data))
     logging.info("Wrote %s", json_output)
@@ -474,8 +476,6 @@ def init_conf(argv):
     CONF['onion_nodes'] = conf.get('crawl', 'onion_nodes').strip().split("\n")
 
     CONF['crawl_dir'] = conf.get('crawl', 'crawl_dir')
-    if not os.path.exists(CONF['crawl_dir']):
-        os.makedirs(CONF['crawl_dir'])
 
     # Set to True for master process
     CONF['master'] = argv[2] == "master"

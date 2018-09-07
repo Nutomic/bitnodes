@@ -12,6 +12,13 @@ machine to run Coincrawler. The
 the list of keys and their associated values that are written by the scripts
 in this project.
 
+If the program output takes up too much space after some time, you can safely
+delete the following folders, after stopping the crawler:
+```
+data/crawl/
+data/export/
+```
+
 License
 -------
 

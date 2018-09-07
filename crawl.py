@@ -225,16 +225,6 @@ def restart(timestamp):
     for key in get_keys(REDIS_CONN, 'crawl:cidr:*'):
         redis_pipe.delete(key)
 
-    if CONF['include_checked']:
-        checked_nodes = REDIS_CONN.zrangebyscore(
-            'check', timestamp - CONF['max_age'], timestamp)
-        for node in checked_nodes:
-            (address, port, services) = eval(node)
-            if is_excluded(address):
-                logging.debug("Exclude: %s", address)
-                continue
-            redis_pipe.sadd('pending', (address, port, services))
-
     redis_pipe.execute()
 
     update_excluded_networks()
@@ -482,8 +472,6 @@ def init_conf(argv):
         tor_proxy = conf.get('general', 'tor_proxy').split(":")
         CONF['tor_proxy'] = (tor_proxy[0], int(tor_proxy[1]))
     CONF['onion_nodes'] = conf.get('crawl', 'onion_nodes').strip().split("\n")
-
-    CONF['include_checked'] = conf.getboolean('crawl', 'include_checked')
 
     CONF['crawl_dir'] = conf.get('crawl', 'crawl_dir')
     if not os.path.exists(CONF['crawl_dir']):

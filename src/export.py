@@ -28,6 +28,7 @@
 Exports enumerated data for reachable nodes into CSV and TXT files.
 """
 
+from __future__ import division
 import logging
 import os
 import sys
@@ -39,8 +40,14 @@ import json
 import urllib
 import sqlite3
 import utils
-
+import itertools
 from utils import new_redis_conn
+
+UPTIME_INTERVALS = {'uptime_two_hours': 2 * 60 * 60,
+                    'uptime_eight_hours': 8 * 60 * 60,
+                    'uptime_day': 24 * 60 * 60,
+                    'uptime_seven_days': 7 * 24 * 60 * 60,
+                    'uptime_thirty_days': 30 * 24 * 60 * 60}
 
 REDIS_CONN = None
 CONF = {}
@@ -85,26 +92,27 @@ def get_dash_masternode_addresses():
     enabled_masternodes = filter(lambda item: item['status'] == 'ENABLED', masternodes)
     return map(lambda item: item['ip'], enabled_masternodes)
 
+
 def store_reachable_nodes(nodes, timestamp):
     """
     Stores all nodes that were discovered in the current crawl in an SQLite database
     """
+    start = time.time()
     utils.create_folder_if_not_exists(os.path.dirname(CONF['storage_file']))
     connection = sqlite3.connect(CONF['storage_file'])
-    cursor = connection.cursor()
 
-    cursor.execute('CREATE TABLE IF NOT EXISTS ' + CONF['coin_name'] + '_nodes ' +
-                   '(id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
-                   'coin_name TEXT NOT NULL, ' +
-                   'timestamp INT NOT NULL, ' +
-                   'last_block INT NOT NULL, ' +
-                   'node_address TEXT NOT NULL, '
-                   'protocol_version INT NOT NULL, ' +
-                   'client_version TEXT NOT NULL, ' +
-                   'country TEXT,' +
-                   'city TEXT, ' +
-                   'isp_cloud TEXT, ' +
-                   'is_masternode INT)')
+    connection.execute('CREATE TABLE IF NOT EXISTS ' + CONF['coin_name'] + '_nodes ' +
+                       '(id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
+                       'node_address TEXT NOT NULL, '
+                       'timestamp INT NOT NULL, ' +
+                       'last_block INT NOT NULL, ' +
+                       'protocol_version INT NOT NULL, ' +
+                       'client_version TEXT NOT NULL, ' +
+                       'country TEXT,' +
+                       'city TEXT, ' +
+                       'isp_cloud TEXT, ' +
+                       'is_masternode INT, ' +
+                       'UNIQUE(node_address, timestamp) ON CONFLICT IGNORE)')
 
     if CONF['dash_insight_api'] is not None:
         dash_masternodes = get_dash_masternode_addresses()
@@ -117,15 +125,37 @@ def store_reachable_nodes(nodes, timestamp):
         row = get_row(node)
         address = "{}:{}".format(row[0], row[1])
         is_masternode = address in dash_masternodes if is_dash else None
-        cursor.execute('INSERT INTO ' + CONF['coin_name'] + '_nodes (coin_name, ' +
-                       'timestamp, last_block, node_address, protocol_version, ' +
-                       'client_version, country, city, isp_cloud, is_masternode) '
-                       'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                       [CONF['coin_name'], timestamp, row[6], address,
-                        row[2], row[3], row[9], row[12], row[14], is_masternode])
+        connection.execute('INSERT INTO ' + CONF['coin_name'] + '_nodes (' +
+                           'timestamp, last_block, node_address, protocol_version, ' +
+                           'client_version, country, city, isp_cloud, is_masternode) '
+                           'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                           [timestamp, row[6], address, row[2], row[3], row[9],
+                            row[12], row[14], is_masternode])
 
     connection.commit()
     connection.close()
+    logging.info("Store took %d seconds", time.time() - start)
+
+
+def calculate_node_uptime(connection, nodes, timestamp, interval_name, interval_seconds):
+    """
+    Calculates uptime for all ndes in the specified interval.
+    """
+    total_scans_per_interval = connection.execute('SELECT count(DISTINCT timestamp) AS count ' +
+                                                  'FROM ' + CONF['coin_name'] + '_nodes ' +
+                                                  'WHERE timestamp >= ?',
+                                                  [timestamp - interval_seconds]).fetchone()['count']
+
+    encounters_per_node = connection.execute('SELECT node_address, count(timestamp) AS times_encountered ' +
+                                             'FROM ' + CONF['coin_name'] + '_nodes ' +
+                                             'WHERE timestamp >= ? ' +
+                                             'GROUP BY node_address',
+                                             [timestamp - interval_seconds])
+
+    for row in encounters_per_node:
+        percentage = row['times_encountered'] / total_scans_per_interval * 100
+        if nodes.has_key(row['node_address']):
+            nodes[row['node_address']][interval_name] = '{:.2f}%'.format(percentage)
 
 
 def export_nodes(timestamp):
@@ -133,6 +163,7 @@ def export_nodes(timestamp):
     Merges enumerated data for the specified nodes and exports them into
     timestamp-prefixed CSV and TXT files.
     """
+    start1 = time.time()
     utils.create_folder_if_not_exists(CONF['export_dir'])
     base_path = os.path.join(CONF['export_dir'], "{}".format(timestamp))
     csv_path = base_path + ".csv"
@@ -140,33 +171,46 @@ def export_nodes(timestamp):
 
     connection = sqlite3.connect(CONF['storage_file'])
     connection.row_factory = sqlite3.Row
-    cursor = connection.cursor()
 
     # Select all nodes that have been online at least once in the last 24 hours
-    nodes_online_24h = cursor.execute('SELECT * ' +
-                                      'FROM ' + CONF['coin_name'] + '_nodes ' +
-                                      'WHERE timestamp >= ?', [timestamp - 24 * 60 * 60])
+    nodes_online_24h = connection.execute('SELECT * ' +
+                                          'FROM ' + CONF['coin_name'] + '_nodes ' +
+                                          'WHERE timestamp >= ?', [time.time() - 24 * 60 * 60])
+
+    # Turn nodes into a dict of node_address -> data
+    nodes_online_24h_dict = {}
+    for row in nodes_online_24h:
+        nodes_online_24h_dict[row['node_address']] = dict(itertools.izip(row.keys(), row))
+
+    for (interval_name, interval_seconds) in UPTIME_INTERVALS.items():
+        calculate_node_uptime(connection, nodes_online_24h_dict, timestamp, interval_name, interval_seconds)
 
     with open(csv_path, 'a') as csv_file, open(txt_path, 'a') as txt_file:
         csv_writer = csv.writer(csv_file, delimiter=",", quoting=csv.QUOTE_NONNUMERIC, encoding='utf-8')
         txt_writer = csv.writer(txt_file, delimiter=" ", quoting=csv.QUOTE_NONNUMERIC, encoding='utf-8')
-        for row in nodes_online_24h:
+        for node in nodes_online_24h_dict.values():
             output_data = [
-                row['node_address'],
-                row['last_block'],
-                row['protocol_version'],
-                row['client_version'],
-                row['country'],
-                row['city'],
-                row['isp_cloud']]
+                node['node_address'],
+                node['uptime_two_hours'],
+                node['uptime_eight_hours'],
+                node['uptime_day'],
+                node['uptime_seven_days'],
+                node['uptime_thirty_days'],
+                node['last_block'],
+                node['protocol_version'],
+                node['client_version'],
+                node['country'],
+                node['city'],
+                node['isp_cloud']]
 
-            if row['is_masternode'] is not None:
-                output_data.append(row['is_masternode'])
+            if node['is_masternode'] is not None:
+                output_data.append(node['is_masternode'])
 
             csv_writer.writerow(output_data)
             txt_writer.writerow(output_data)
 
     connection.close()
+    logging.info("Export took %d seconds", time.time() - start1)
     logging.info("Wrote %s and %s", csv_path, txt_path)
 
 

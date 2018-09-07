@@ -22,7 +22,3 @@ python -u ping.py "conf/$coin.conf" slave > "log/$coin/ping.slave.4.out" 2>&1 &
 python -u resolve.py "conf/$coin.conf" > "log/$coin/resolve.out" 2>&1 &
 
 python -u export.py "conf/$coin.conf" > "log/$coin/export.out" 2>&1 &
-
-python -u seeder.py "conf/$coin.conf" > "log/$coin/seeder.out" 2>&1 &
-
-python -u pcap.py "conf/$coin.conf" > "log/$coin/pcap.1.out" 2>&1 &

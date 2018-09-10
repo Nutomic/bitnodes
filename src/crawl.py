@@ -49,6 +49,7 @@ from ConfigParser import ConfigParser
 from geoip2.errors import AddressNotFoundError
 from ipaddress import ip_address, ip_network
 import utils
+import sqlite3
 
 from protocol import (
     ONION_PREFIX,
@@ -312,6 +313,7 @@ def set_pending():
     """
     Initializes pending set in Redis with a list of reachable nodes from DNS
     seeders and hardcoded list of .onion nodes to bootstrap the crawler.
+    Also adds nodes from previous scans if the database file is present.
     """
     for seeder in CONF['seeders']:
         nodes = []
@@ -342,6 +344,14 @@ def set_pending():
     if CONF['onion']:
         for address in CONF['onion_nodes']:
             REDIS_CONN.sadd('pending', (address, CONF['port'], TO_SERVICES))
+
+    if os.path.exists(CONF['storage_file']):
+        connection = sqlite3.connect(CONF['storage_file'])
+        result = connection.execute('SELECT DISTINCT node_address ' +
+                           'FROM ' + CONF['coin_name'] + '_nodes')
+        for row in result:
+            address, port = row[0].split(':', 1)
+            REDIS_CONN.sadd('pending', (address, port, TO_SERVICES))
 
 
 def is_excluded(address):
@@ -434,6 +444,7 @@ def init_conf(argv):
     """
     conf = ConfigParser()
     conf.read(argv[1])
+    CONF['coin_name'] = conf.get('general', 'coin_name')
     CONF['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
     CONF['user_agent'] = conf.get('general', 'user_agent')
     CONF['port'] = conf.getint('general', 'port')
@@ -476,6 +487,8 @@ def init_conf(argv):
     CONF['onion_nodes'] = conf.get('crawl', 'onion_nodes').strip().split("\n")
 
     CONF['crawl_dir'] = conf.get('crawl', 'crawl_dir')
+
+    CONF['storage_file'] = conf.get('export', 'storage_file')
 
     # Set to True for master process
     CONF['master'] = argv[2] == "master"

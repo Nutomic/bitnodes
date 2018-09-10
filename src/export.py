@@ -121,17 +121,18 @@ def store_reachable_nodes(nodes, timestamp):
         dash_masternodes = None
         is_dash = False
 
+    insert_nodes = []
     for node in nodes:
         row = get_row(node)
         address = "{}:{}".format(row[0], row[1])
         is_masternode = address in dash_masternodes if is_dash else None
-        connection.execute('INSERT INTO ' + CONF['coin_name'] + '_nodes (' +
+        insert_nodes.append([timestamp, row[6], address, row[2], row[3], row[9],
+                             row[12], row[14], is_masternode])
+
+    connection.executemany('INSERT INTO ' + CONF['coin_name'] + '_nodes (' +
                            'timestamp, last_block, node_address, protocol_version, ' +
                            'client_version, country, city, isp_cloud, is_masternode) '
-                           'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                           [timestamp, row[6], address, row[2], row[3], row[9],
-                            row[12], row[14], is_masternode])
-
+                           'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', insert_nodes)
     connection.commit()
     connection.close()
     logging.info("Store took %d seconds", time.time() - start)

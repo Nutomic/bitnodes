@@ -4,6 +4,7 @@
 # resolve.py - Resolves hostname and GeoIP data for each reachable node.
 #
 # Copyright (c) Addy Yeow Chin Heng <ayeowch@gmail.com>
+# Portions Copyright (c) 2018 Felix Ableitner
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the

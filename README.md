@@ -6,6 +6,8 @@ At the moment, it includes configurations for Bitcoin, Bitcoin Cash, Dash
 and Litecoin. The project is forked from
 [Bitnodes](https://github.com/ayeowch/bitnodes).
 
+The development of this project was sponsored by Alexey Eromenko "Technologov".
+
 Usage
 -----
 

@@ -4,6 +4,7 @@
 # crawl.py - Greenlets-based Bitcoin network crawler.
 #
 # Copyright (c) Addy Yeow Chin Heng <ayeowch@gmail.com>
+# Portions Copyright (c) 2018 Felix Ableitner
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the

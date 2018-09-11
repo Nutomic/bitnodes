@@ -142,19 +142,26 @@ def calculate_node_uptime(connection, nodes, timestamp, interval_name, interval_
     """
     Calculates uptime for all ndes in the specified interval.
     """
-    total_scans_per_interval = connection.execute('SELECT count(DISTINCT timestamp) AS count ' +
-                                                  'FROM ' + CONF['coin_name'] + '_nodes ' +
-                                                  'WHERE timestamp >= ?',
-                                                  [timestamp - interval_seconds]).fetchone()['count']
+    result = connection.cursor().execute(
+                'SELECT DISTINCT timestamp ' +
+                'FROM ' + CONF['coin_name'] + '_nodes ' +
+                'WHERE timestamp >= ?',
+                [timestamp - interval_seconds])
+    all_scans_in_interval = []
+    for row in result:
+        all_scans_in_interval.append(row['timestamp'])
 
-    encounters_per_node = connection.execute('SELECT node_address, count(timestamp) AS times_encountered ' +
-                                             'FROM ' + CONF['coin_name'] + '_nodes ' +
-                                             'WHERE timestamp >= ? ' +
-                                             'GROUP BY node_address',
-                                             [timestamp - interval_seconds])
+    encounters_per_node = connection.cursor().execute(
+                'SELECT node_address, count(timestamp) AS times_encountered, min(timestamp) AS node_first_encountered ' +
+                'FROM ' + CONF['coin_name'] + '_nodes ' +
+                'WHERE timestamp >= ? ' +
+                'GROUP BY node_address',
+                [timestamp - interval_seconds])
 
     for row in encounters_per_node:
-        percentage = row['times_encountered'] / total_scans_per_interval * 100
+        total_scans_since_first_encounter = \
+            filter(lambda i: i >= row['node_first_encountered'], all_scans_in_interval)
+        percentage = row['times_encountered'] / len(total_scans_since_first_encounter) * 100
         if nodes.has_key(row['node_address']):
             nodes[row['node_address']][interval_name] = '{:.2f}%'.format(percentage)
 

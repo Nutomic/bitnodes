@@ -192,11 +192,11 @@ def export_nodes(timestamp):
         for node in nodes_online_24h_dict.values():
             output_data = [
                 node['node_address'],
-                node['uptime_two_hours'],
-                node['uptime_eight_hours'],
-                node['uptime_day'],
-                node['uptime_seven_days'],
-                node['uptime_thirty_days'],
+                node.get('uptime_two_hours', '100.00%'),
+                node.get('uptime_eight_hours', '100.00%'),
+                node.get('uptime_day', '100.00%'),
+                node.get('uptime_seven_days', '100.00%'),
+                node.get('uptime_thirty_days', '100.00%'),
                 node['last_block'],
                 node['protocol_version'],
                 node['client_version'],

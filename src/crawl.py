@@ -29,6 +29,7 @@ Greenlets-based Bitcoin network crawler.
 """
 
 from gevent import monkey
+
 monkey.patch_all()
 
 import geoip2.database
@@ -282,7 +283,6 @@ def task():
             while REDIS_CONN.get('crawl:master:state') != "running":
                 gevent.sleep(CONF['socket_timeout'])
 
-        gevent.sleep(5)
         node = redis_conn.spop('pending')  # Pop random node from set
         if node is None:
             gevent.sleep(1)
@@ -348,7 +348,7 @@ def set_pending():
     if os.path.exists(CONF['storage_file']):
         connection = sqlite3.connect(CONF['storage_file'])
         result = connection.execute('SELECT DISTINCT node_address ' +
-                           'FROM ' + CONF['coin_name'] + '_nodes')
+                                    'FROM ' + CONF['coin_name'] + '_nodes')
         for row in result:
             address, port = row[0].split(':', 1)
             REDIS_CONN.sadd('pending', (address, port, TO_SERVICES))

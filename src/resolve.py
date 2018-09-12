@@ -171,7 +171,8 @@ def raw_geoip(address):
     """
     Resolves GeoIP data for the specified address using MaxMind databases.
     """
-    country = None
+    country_iso = None
+    country_name = None
     city = None
     lat = 0.0
     lng = 0.0
@@ -187,7 +188,8 @@ def raw_geoip(address):
         except AddressNotFoundError:
             pass
         else:
-            country = gcountry.country.iso_code
+            country_iso = gcountry.country.iso_code
+            country_name = gcountry.country.name
 
         try:
             gcity = GEOIP_CITY.city(address)
@@ -213,7 +215,7 @@ def raw_geoip(address):
             asn = 'AS{}'.format(asn_record.autonomous_system_number)
             org = asn_record.autonomous_system_organization
 
-    return (city, country, lat, lng, timezone, asn, org)
+    return city, country_iso, country_name, lat, lng, timezone, asn, org
 
 
 def init_conf(argv):

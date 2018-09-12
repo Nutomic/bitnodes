@@ -85,10 +85,8 @@ for 7 days and 30 days will by definition be the same.
 Development
 -----------
 
-The
-[Redis Data](https://github.com/ayeowch/bitnodes/wiki/Redis-Data) contains
-the list of keys and their associated values that are written by the scripts
-in this project.
+The [Redis Data](redis-data.md) document contains the list of keys and their
+associated values that are written by the scripts in this project.
 
 License
 -------

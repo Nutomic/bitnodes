@@ -75,8 +75,8 @@ def get_row(node):
 
     geoip = REDIS_CONN.hget('resolve:{}'.format(address), 'geoip')
     if geoip is None:
-        # city, country, latitude, longitude, timezone, asn, org
-        geoip = (None, None, 0.0, 0.0, None, None, None)
+        # city, country_iso, country_name, latitude, longitude, timezone, asn, org
+        geoip = (None, None, None, 0.0, 0.0, None, None, None)
     else:
         geoip = eval(geoip)
 
@@ -109,7 +109,8 @@ def store_reachable_nodes(nodes, timestamp):
                        'last_block INT NOT NULL, ' +
                        'protocol_version INT NOT NULL, ' +
                        'client_version TEXT NOT NULL, ' +
-                       'country TEXT,' +
+                       'country_iso TEXT,' +
+                       'country_name TEXT, ' +
                        'city TEXT, ' +
                        'isp_cloud TEXT, ' +
                        'is_masternode INT, ' +
@@ -128,12 +129,13 @@ def store_reachable_nodes(nodes, timestamp):
         address = "{}:{}".format(row[0], row[1])
         is_masternode = address in dash_masternodes if is_dash else None
         insert_nodes.append([timestamp, row[6], address, row[2], row[3], row[9],
-                             row[12], row[14], is_masternode])
+                             row[10], row[13], row[15], is_masternode])
 
     connection.executemany('INSERT INTO ' + CONF['coin_name'] + '_nodes (' +
                            'timestamp, last_block, node_address, protocol_version, ' +
-                           'client_version, country, city, isp_cloud, is_masternode) '
-                           'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', insert_nodes)
+                           'client_version, country_iso, country_name, city, ' +
+                           'isp_cloud, is_masternode) '
+                           'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', insert_nodes)
     connection.commit()
     connection.close()
     logging.info("Store took %d seconds", time.time() - start)
@@ -208,7 +210,8 @@ def export_nodes(timestamp):
                 node['last_block'],
                 node['protocol_version'],
                 node['client_version'],
-                node['country'],
+                node['country_iso'],
+                node['country_name'],
                 node['city'],
                 node['isp_cloud']]
 

@@ -69,3 +69,13 @@ def ip_to_network(address, prefix):
 def create_folder_if_not_exists(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
+
+def median(list):
+    """
+    Calculate median value of a list.
+    https://stackoverflow.com/a/20730918
+    """
+    even = (0 if len(list) % 2 else 1) + 1
+    half = (len(list) - 1) / 2
+    return sum(sorted(list)[half:half + even]) / float(even)

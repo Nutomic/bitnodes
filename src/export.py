@@ -164,7 +164,7 @@ def calculate_node_uptime(connection, nodes, timestamp, interval_name, interval_
     for row in encounters_per_node:
         total_scans_since_first_encounter = \
             filter(lambda i: i >= row['node_first_encountered'], all_scans_in_interval)
-        percentage = row['times_encountered'] / len(total_scans_since_first_encounter) * 100
+        percentage = row['times_encountered'] / len(list(total_scans_since_first_encounter)) * 100
         if nodes.has_key(row['node_address']):
             nodes[row['node_address']][interval_name] = '{:.2f}%'.format(percentage)
 
@@ -187,6 +187,12 @@ def export_nodes(timestamp):
     nodes_online_24h = connection.execute('SELECT * ' +
                                           'FROM ' + CONF['coin_name'] + '_nodes ' +
                                           'WHERE timestamp >= ?', [time.time() - 24 * 60 * 60])
+
+    block_height_values = connection.execute('SELECT last_block ' +
+                                             'FROM ' + CONF['coin_name'] + '_nodes ' +
+                                             'WHERE timestamp = ?', [timestamp])
+    block_height_values = map(lambda i: i['last_block'], block_height_values.fetchall())
+    median_block_height = utils.median(block_height_values)
 
     # Turn nodes into a dict of node_address -> data
     nodes_online_24h_dict = {}
@@ -215,11 +221,16 @@ def export_nodes(timestamp):
                 node['city'],
                 node['isp_cloud']]
 
+            is_synced = abs(median_block_height - node['last_block']) <= \
+                        CONF['max_block_height_difference']
+            output_data.append(1 if is_synced else 0)
+
             if node['is_masternode'] is not None:
                 output_data.append(node['is_masternode'])
 
-            csv_writer.writerow(output_data)
-            txt_writer.writerow(output_data)
+            if is_synced or CONF['include_out_of_sync']:
+                csv_writer.writerow(output_data)
+                txt_writer.writerow(output_data)
 
     connection.close()
     logging.info("Export took %d seconds", time.time() - start1)
@@ -237,6 +248,8 @@ def init_conf(argv):
     CONF['db'] = conf.getint('general', 'db')
     CONF['logfile'] = conf.get('export', 'logfile')
     CONF['debug'] = conf.getboolean('export', 'debug')
+    CONF['max_block_height_difference'] = conf.getint('export', 'max_block_height_difference')
+    CONF['include_out_of_sync'] = conf.getboolean('export', 'include_out_of_sync')
     CONF['export_dir'] = conf.get('export', 'export_dir')
     CONF['storage_file'] = conf.get('export', 'storage_file')
     try:

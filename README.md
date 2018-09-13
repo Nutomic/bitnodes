@@ -54,6 +54,8 @@ information about one node:
 "US",                   # country
 "America/New_York",     # city
 "DigitalOcean, LLC",    # ISP cloud
+1,                      # 1 if the node's block height is at most 12 different
+                        # from the median (see config value max_block_height_difference)
 1                       # 1 for Dash masternodes, 0 otherwise (only for Dash)
 
 ```

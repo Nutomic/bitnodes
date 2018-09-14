@@ -42,9 +42,8 @@ import redis.connection
 import socket
 import sys
 import time
-from binascii import hexlify, unhexlify
+from binascii import hexlify
 from collections import defaultdict
-from ConfigParser import ConfigParser
 from decimal import Decimal
 from geoip2.errors import AddressNotFoundError
 

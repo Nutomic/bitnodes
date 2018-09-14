@@ -43,8 +43,7 @@ import redis.connection
 import socket
 import sys
 import time
-from binascii import hexlify, unhexlify
-from ConfigParser import ConfigParser
+from binascii import hexlify
 import utils
 
 from protocol import ProtocolError, ConnectionError, Connection

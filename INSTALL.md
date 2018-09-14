@@ -28,7 +28,7 @@ and use a key pair instead.
 
     # apt-get update
     # apt-get upgrade
-    # apt-get install build-essential python-dev python-pip python-setuptools tor git
+    # apt-get install build-essential python-dev python-pip python-setuptools tor git killall
 
 #### Adjust various config files
 
@@ -111,5 +111,5 @@ Depending on your hardware and internet connection, this will take roughly 30 mi
     git clone https://github.com/Nutomic/coincrawler.git
     cd coincrawler/
     pip install -r requirements.txt
-    bash geoip/update.sh
-    bash start.sh
+    ./geoip/update.sh
+    ./start-all.py

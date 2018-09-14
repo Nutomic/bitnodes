@@ -38,16 +38,14 @@ import gevent
 import json
 import logging
 import os
-import redis
 import redis.connection
 import requests
 import socket
 import sys
 import time
 from base64 import b32decode
-from binascii import hexlify, unhexlify
+from binascii import hexlify
 from collections import Counter
-from ConfigParser import ConfigParser
 from geoip2.errors import AddressNotFoundError
 from ipaddress import ip_address, ip_network
 import utils

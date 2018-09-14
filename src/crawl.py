@@ -443,53 +443,21 @@ def init_conf(argv):
     """
     Populates CONF with key-value pairs from configuration file.
     """
-    conf = ConfigParser()
-    conf.read(argv[1])
-    CONF['coin_name'] = conf.get('general', 'coin_name')
-    CONF['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
-    CONF['user_agent'] = conf.get('general', 'user_agent')
-    CONF['port'] = conf.getint('general', 'port')
-    CONF['db'] = conf.getint('general', 'db')
-    CONF['protocol_version'] = conf.getint('general', 'protocol_version')
-    CONF['services'] = conf.getint('general', 'services')
-    CONF['logfile'] = conf.get('crawl', 'logfile')
-    CONF['seeders'] = conf.get('crawl', 'seeders').strip().split("\n")
-    CONF['workers'] = conf.getint('crawl', 'workers')
-    CONF['debug'] = conf.getboolean('crawl', 'debug')
-    CONF['source_address'] = conf.get('crawl', 'source_address')
-    CONF['relay'] = conf.getint('crawl', 'relay')
-    CONF['socket_timeout'] = conf.getint('crawl', 'socket_timeout')
-    CONF['cron_delay'] = conf.getint('crawl', 'cron_delay')
-    CONF['snapshot_delay'] = conf.getint('crawl', 'snapshot_delay')
-    CONF['max_age'] = conf.getint('crawl', 'max_age')
-    CONF['ipv6'] = conf.getboolean('crawl', 'ipv6')
-    CONF['ipv6_prefix'] = conf.getint('crawl', 'ipv6_prefix')
-    CONF['nodes_per_ipv6_prefix'] = conf.getint('crawl',
-                                                'nodes_per_ipv6_prefix')
+    CONF.update(utils.parse_config(argv[1], 'crawl'))
+    CONF['seeders'] = CONF['seeders'].strip().split("\n")
 
-    CONF['exclude_asns'] = conf.get('crawl',
-                                    'exclude_asns').strip().split("\n")
-
-    CONF['exclude_ipv4_networks'] = list_excluded_networks(
-        conf.get('crawl', 'exclude_ipv4_networks'))
-    CONF['exclude_ipv6_networks'] = list_excluded_networks(
-        conf.get('crawl', 'exclude_ipv6_networks'))
-
-    CONF['exclude_ipv4_bogons'] = conf.getboolean('crawl',
-                                                  'exclude_ipv4_bogons')
-
+    CONF['exclude_asns'] = CONF['exclude_asns'].strip().split("\n")
+    CONF['exclude_ipv4_networks'] = list_excluded_networks(CONF['exclude_ipv4_networks'])
+    CONF['exclude_ipv6_networks'] = list_excluded_networks(CONF['exclude_ipv6_networks'])
     CONF['initial_exclude_ipv4_networks'] = CONF['exclude_ipv4_networks']
 
-    CONF['onion'] = conf.getboolean('general', 'onion')
-    CONF['tor_proxy'] = None
     if CONF['onion']:
-        tor_proxy = conf.get('general', 'tor_proxy').split(":")
+        tor_proxy = CONF['tor_proxy'].split(":")
         CONF['tor_proxy'] = (tor_proxy[0], int(tor_proxy[1]))
-    CONF['onion_nodes'] = conf.get('crawl', 'onion_nodes').strip().split("\n")
+    else:
+        CONF['tor_proxy'] = None
 
-    CONF['crawl_dir'] = conf.get('crawl', 'crawl_dir')
-
-    CONF['storage_file'] = conf.get('export', 'storage_file')
+    CONF['onion_nodes'] = CONF['onion_nodes'].strip().split("\n")
 
     # Set to True for master process
     CONF['master'] = argv[2] == "master"

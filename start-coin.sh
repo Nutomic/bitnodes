@@ -21,4 +21,4 @@ python2 -u src/ping.py "conf/$coin.conf" slave > "log/$coin/ping.slave.4.out" 2>
 
 python2 -u src/resolve.py "conf/$coin.conf" > "log/$coin/resolve.out" 2>&1 &
 
-python2 -u src/export.py "conf/$coin.conf" > "log/$coin/export.out" 2>&1 &
+python2 -u src/export.py "conf/$coin.conf" "conf/meta.conf" > "log/$coin/export.out" 2>&1 &

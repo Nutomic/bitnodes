@@ -37,7 +37,7 @@ import gevent
 import gevent.pool
 import logging
 import os
-import redis
+import utils
 import redis.connection
 import socket
 import sys
@@ -47,8 +47,6 @@ from collections import defaultdict
 from ConfigParser import ConfigParser
 from decimal import Decimal
 from geoip2.errors import AddressNotFoundError
-
-from utils import new_redis_conn
 
 redis.connection.socket = gevent.socket
 
@@ -218,26 +216,13 @@ def raw_geoip(address):
     return city, country_iso, country_name, lat, lng, timezone, asn, org
 
 
-def init_conf(argv):
-    """
-    Populates CONF with key-value pairs from configuration file.
-    """
-    conf = ConfigParser()
-    conf.read(argv[1])
-    CONF['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
-    CONF['db'] = conf.getint('general', 'db')
-    CONF['logfile'] = conf.get('resolve', 'logfile')
-    CONF['debug'] = conf.getboolean('resolve', 'debug')
-    CONF['ttl'] = conf.getint('resolve', 'ttl')
-
-
 def main(argv):
     if len(argv) < 2 or not os.path.exists(argv[1]):
         print("Usage: resolve.py [config]")
         return 1
 
     # Initialize global conf
-    init_conf(argv)
+    CONF.update(utils.parse_config(argv[1], 'resolve'))
 
     # Initialize logger
     loglevel = logging.INFO
@@ -252,7 +237,7 @@ def main(argv):
                         filemode='w')
 
     global REDIS_CONN
-    REDIS_CONN = new_redis_conn(db=CONF['db'])
+    REDIS_CONN = utils.new_redis_conn(db=CONF['db'])
 
     subscribe_key = 'snapshot:{}'.format(hexlify(CONF['magic_number']))
     publish_key = 'resolve:{}'.format(hexlify(CONF['magic_number']))

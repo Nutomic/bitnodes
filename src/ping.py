@@ -39,13 +39,13 @@ import json
 import logging
 import os
 import random
-import redis
 import redis.connection
 import socket
 import sys
 import time
 from binascii import hexlify, unhexlify
 from ConfigParser import ConfigParser
+import utils
 
 from protocol import ProtocolError, ConnectionError, Connection
 from utils import new_redis_conn, get_keys, ip_to_network
@@ -378,32 +378,14 @@ def init_conf(argv):
     """
     Populates CONF with key-value pairs from configuration file.
     """
-    conf = ConfigParser()
-    conf.read(argv[1])
-    CONF['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
-    CONF['db'] = conf.getint('general', 'db')
-    CONF['user_agent'] = conf.get('general', 'user_agent')
-    CONF['services'] = conf.getint('general', 'services')
-    CONF['protocol_version'] = conf.getint('general', 'protocol_version')
-    CONF['logfile'] = conf.get('ping', 'logfile')
-    CONF['workers'] = conf.getint('ping', 'workers')
-    CONF['debug'] = conf.getboolean('ping', 'debug')
-    CONF['source_address'] = conf.get('ping', 'source_address')
-    CONF['relay'] = conf.getint('ping', 'relay')
-    CONF['socket_timeout'] = conf.getint('ping', 'socket_timeout')
-    CONF['cron_delay'] = conf.getint('ping', 'cron_delay')
-    CONF['ttl'] = conf.getint('ping', 'ttl')
-    CONF['ipv6_prefix'] = conf.getint('ping', 'ipv6_prefix')
-    CONF['nodes_per_ipv6_prefix'] = conf.getint('ping',
-                                                'nodes_per_ipv6_prefix')
+    CONF.update(utils.parse_config(argv[1], 'ping'))
 
-    CONF['onion'] = conf.getboolean('general', 'onion')
-    CONF['tor_proxy'] = None
     if CONF['onion']:
-        tor_proxy = conf.get('general', 'tor_proxy').split(":")
+        tor_proxy = CONF['tor_proxy'].split(":")
         CONF['tor_proxy'] = (tor_proxy[0], int(tor_proxy[1]))
+    else:
+        CONF['tor_proxy'] = None
 
-    CONF['crawl_dir'] = conf.get('ping', 'crawl_dir')
     if not os.path.exists(CONF['crawl_dir']):
         os.makedirs(CONF['crawl_dir'])
 

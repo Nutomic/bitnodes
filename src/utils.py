@@ -32,6 +32,9 @@ Common helper methods.
 import os
 import redis
 from ipaddress import ip_network
+from ConfigParser import ConfigParser
+from binascii import unhexlify
+from ast import literal_eval
 
 
 def new_redis_conn(db=0):
@@ -71,11 +74,36 @@ def create_folder_if_not_exists(path):
         os.makedirs(path)
 
 
-def median(list):
+def median(lst):
     """
     Calculate median value of a list.
     https://stackoverflow.com/a/20730918
     """
-    even = (0 if len(list) % 2 else 1) + 1
-    half = (len(list) - 1) / 2
-    return sum(sorted(list)[half:half + even]) / float(even)
+    even = (0 if len(lst) % 2 else 1) + 1
+    half = (len(lst) - 1) / 2
+    return sum(sorted(lst)[half:half + even]) / float(even)
+
+
+def parse_config(config_file, section):
+    conf = ConfigParser()
+    conf.read(config_file)
+    conf_dict = {}
+    for item in conf.items('general'):
+        if item[0] == 'magic_number':
+            conf_dict['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
+        else:
+            conf_dict[item[0]] = eval_config_value(item[1])
+
+    for item in conf.items(section):
+        if conf_dict.has_key(item[0]):
+            raise Exception("")
+        conf_dict[item[0]] = eval_config_value(item[1])
+
+    return conf_dict
+
+
+def eval_config_value(value):
+    try:
+        return literal_eval(value)
+    except (ValueError, SyntaxError):
+        return value

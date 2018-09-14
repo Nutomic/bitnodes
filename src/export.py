@@ -34,8 +34,8 @@ import logging
 import os
 import sys
 import time
-from binascii import hexlify, unhexlify
-from ConfigParser import ConfigParser, NoOptionError
+from binascii import hexlify
+from ConfigParser import ConfigParser
 import unicodecsv as csv
 import json
 import urllib
@@ -52,6 +52,7 @@ UPTIME_INTERVALS = {'uptime_two_hours': 2 * 60 * 60,
 
 REDIS_CONN = None
 CONF = {}
+coins_exported = {'bitcoin': 0, 'bitcoincash': 0, 'dash': 0, 'litecoin': 0}
 
 
 def get_row(node):
@@ -116,7 +117,7 @@ def store_reachable_nodes(nodes, timestamp):
                        'is_masternode INT, ' +
                        'UNIQUE(node_address, timestamp) ON CONFLICT IGNORE)')
 
-    if CONF['dash_insight_api'] is not None:
+    if CONF.has_key('dash_insight_api'):
         dash_masternodes = get_dash_masternode_addresses()
         is_dash = True
     else:
@@ -141,25 +142,26 @@ def store_reachable_nodes(nodes, timestamp):
     logging.info("Store took %d seconds", time.time() - start)
 
 
-def calculate_node_uptime(connection, nodes, timestamp, interval_name, interval_seconds):
+def calculate_node_uptime(connection, nodes, timestamp, interval_name,
+                          interval_seconds, coin_name):
     """
     Calculates uptime for all ndes in the specified interval.
     """
     result = connection.cursor().execute(
-                'SELECT DISTINCT timestamp ' +
-                'FROM ' + CONF['coin_name'] + '_nodes ' +
-                'WHERE timestamp >= ?',
-                [timestamp - interval_seconds])
+        'SELECT DISTINCT timestamp ' +
+        'FROM ' + coin_name + '_nodes ' +
+        'WHERE timestamp >= ?',
+        [timestamp - interval_seconds])
     all_scans_in_interval = []
     for row in result:
         all_scans_in_interval.append(row['timestamp'])
 
     encounters_per_node = connection.cursor().execute(
-                'SELECT node_address, count(timestamp) AS times_encountered, min(timestamp) AS node_first_encountered ' +
-                'FROM ' + CONF['coin_name'] + '_nodes ' +
-                'WHERE timestamp >= ? ' +
-                'GROUP BY node_address',
-                [timestamp - interval_seconds])
+        'SELECT node_address, count(timestamp) AS times_encountered, min(timestamp) AS node_first_encountered ' +
+        'FROM ' + coin_name + '_nodes ' +
+        'WHERE timestamp >= ? ' +
+        'GROUP BY node_address',
+        [timestamp - interval_seconds])
 
     for row in encounters_per_node:
         total_scans_since_first_encounter = \
@@ -169,27 +171,27 @@ def calculate_node_uptime(connection, nodes, timestamp, interval_name, interval_
             nodes[row['node_address']][interval_name] = '{:.2f}%'.format(percentage)
 
 
-def export_nodes(timestamp):
+def export_coin_nodes(timestamp, config, export_dir, indicate_dash_masternodes):
     """
     Merges enumerated data for the specified nodes and exports them into
     timestamp-prefixed CSV and TXT files.
     """
-    start1 = time.time()
-    utils.create_folder_if_not_exists(CONF['export_dir'])
-    base_path = os.path.join(CONF['export_dir'], "{}".format(timestamp))
+    start = time.time()
+    utils.create_folder_if_not_exists(export_dir)
+    base_path = os.path.join(export_dir, "{}".format(timestamp))
     csv_path = base_path + ".csv"
     txt_path = base_path + ".txt"
 
-    connection = sqlite3.connect(CONF['storage_file'])
+    connection = sqlite3.connect(config['storage_file'])
     connection.row_factory = sqlite3.Row
 
     # Select all nodes that have been online at least once in the last 24 hours
     nodes_online_24h = connection.execute('SELECT * ' +
-                                          'FROM ' + CONF['coin_name'] + '_nodes ' +
+                                          'FROM ' + config['coin_name'] + '_nodes ' +
                                           'WHERE timestamp >= ?', [time.time() - 24 * 60 * 60])
 
     block_height_values = connection.execute('SELECT last_block ' +
-                                             'FROM ' + CONF['coin_name'] + '_nodes ' +
+                                             'FROM ' + config['coin_name'] + '_nodes ' +
                                              'WHERE timestamp = ?', [timestamp])
     block_height_values = map(lambda i: i['last_block'], block_height_values.fetchall())
     median_block_height = utils.median(block_height_values)
@@ -200,7 +202,8 @@ def export_nodes(timestamp):
         nodes_online_24h_dict[row['node_address']] = dict(itertools.izip(row.keys(), row))
 
     for (interval_name, interval_seconds) in UPTIME_INTERVALS.items():
-        calculate_node_uptime(connection, nodes_online_24h_dict, timestamp, interval_name, interval_seconds)
+        calculate_node_uptime(connection, nodes_online_24h_dict, timestamp,
+                              interval_name, interval_seconds, config['coin_name'])
 
     with open(csv_path, 'a') as csv_file, open(txt_path, 'a') as txt_file:
         csv_writer = csv.writer(csv_file, delimiter=",", quoting=csv.QUOTE_NONNUMERIC, encoding='utf-8')
@@ -222,49 +225,44 @@ def export_nodes(timestamp):
                 node['isp_cloud']]
 
             is_synced = abs(median_block_height - node['last_block']) <= \
-                        CONF['max_block_height_difference']
+                        config['max_block_height_difference']
             output_data.append(1 if is_synced else 0)
 
-            if node['is_masternode'] is not None:
+            if indicate_dash_masternodes and node['is_masternode'] is not None:
                 output_data.append(node['is_masternode'])
 
-            if is_synced or CONF['include_out_of_sync']:
+            if is_synced or config['include_out_of_sync']:
                 csv_writer.writerow(output_data)
                 txt_writer.writerow(output_data)
 
     connection.close()
-    logging.info("Export took %d seconds", time.time() - start1)
+    logging.info("Export took %d seconds", time.time() - start)
     logging.info("Wrote %s and %s", csv_path, txt_path)
 
 
-def init_conf(argv):
-    """
-    Populates CONF with key-value pairs from configuration file.
-    """
+def export_all_nodes(timestamp, meta_conf):
     conf = ConfigParser()
-    conf.read(argv[1])
-    CONF['coin_name'] = conf.get('general', 'coin_name')
-    CONF['magic_number'] = unhexlify(conf.get('general', 'magic_number'))
-    CONF['db'] = conf.getint('general', 'db')
-    CONF['logfile'] = conf.get('export', 'logfile')
-    CONF['debug'] = conf.getboolean('export', 'debug')
-    CONF['max_block_height_difference'] = conf.getint('export', 'max_block_height_difference')
-    CONF['include_out_of_sync'] = conf.getboolean('export', 'include_out_of_sync')
-    CONF['export_dir'] = conf.get('export', 'export_dir')
-    CONF['storage_file'] = conf.get('export', 'storage_file')
-    try:
-        CONF['dash_insight_api'] = conf.get('export', 'dash_insight_api')
-    except NoOptionError:
-        CONF['dash_insight_api'] = None
+    conf.read(meta_conf)
+    all_coins = conf.get('meta', 'enabled_coins').strip().split(',')
+    for coin in all_coins:
+        if REDIS_CONN.get(coin + '_crawls') == 0:
+            return
+
+    for coin in all_coins:
+        REDIS_CONN.set(coin + 'crawls', 0)
+
+    for c in conf.get('meta', 'config_files').strip().split(","):
+        coin_conf = utils.parse_config(c, 'export')
+        export_coin_nodes(timestamp, coin_conf, conf.get('meta', 'export_all_dir'),
+                          False)
 
 
 def main(argv):
-    if len(argv) < 2 or not os.path.exists(argv[1]):
-        print("Usage: export.py [config]")
+    if len(argv) < 3 or not os.path.exists(argv[2]):
+        print("Usage: export.py [coin.conf] [meta.conf]")
         return 1
 
-    # Initialize global conf
-    init_conf(argv)
+    CONF.update(utils.parse_config(argv[1], 'export'))
 
     # Initialize logger
     loglevel = logging.INFO
@@ -294,12 +292,14 @@ def main(argv):
         # 'resolve' message is published by resolve.py after resolving hostname
         # and GeoIP data for all reachable nodes.
         if msg['channel'] == subscribe_key and msg['type'] == 'message':
+            REDIS_CONN.incr(CONF['coin_name'] + '_crawls', 1)
             timestamp = int(msg['data'])  # From ping.py's 'snapshot' message
             logging.info("Timestamp: %d", timestamp)
             nodes = REDIS_CONN.smembers('opendata')
             logging.info("Nodes: %d", len(nodes))
             store_reachable_nodes(nodes, timestamp)
-            export_nodes(timestamp)
+            export_coin_nodes(timestamp, CONF, CONF['export_dir'], True)
+            export_all_nodes(timestamp, argv[2])
             REDIS_CONN.publish(publish_key, timestamp)
 
     return 0

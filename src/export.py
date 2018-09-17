@@ -101,7 +101,7 @@ def store_reachable_nodes(nodes, timestamp):
     """
     start = time.time()
     utils.create_folder_if_not_exists(os.path.dirname(CONF['storage_file']))
-    connection = sqlite3.connect(CONF['storage_file'])
+    connection = sqlite3.connect(CONF['storage_file'], timeout=120)
 
     connection.execute('CREATE TABLE IF NOT EXISTS ' + CONF['coin_name'] + '_nodes ' +
                        '(id INTEGER PRIMARY KEY AUTOINCREMENT, ' +
@@ -182,7 +182,7 @@ def export_coin_nodes(timestamp, config, export_dir, indicate_dash_masternodes):
     csv_path = base_path + ".csv"
     txt_path = base_path + ".txt"
 
-    connection = sqlite3.connect(config['storage_file'])
+    connection = sqlite3.connect(config['storage_file'], timeout=120)
     connection.row_factory = sqlite3.Row
 
     # Select all nodes that have been online at least once in the last 24 hours

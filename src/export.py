@@ -171,7 +171,7 @@ def calculate_node_uptime(connection, nodes, timestamp, interval_name,
             nodes[row['node_address']][interval_name] = '{:.2f}%'.format(percentage)
 
 
-def export_coin_nodes(timestamp, config, export_dir, indicate_dash_masternodes):
+def export_coin_nodes(timestamp, config, export_dir, is_merged_export):
     """
     Merges enumerated data for the specified nodes and exports them into
     timestamp-prefixed CSV and TXT files.
@@ -215,20 +215,23 @@ def export_coin_nodes(timestamp, config, export_dir, indicate_dash_masternodes):
                 node.get('uptime_eight_hours', '100.00%'),
                 node.get('uptime_day', '100.00%'),
                 node.get('uptime_seven_days', '100.00%'),
-                node.get('uptime_thirty_days', '100.00%'),
-                node['last_block'],
-                node['protocol_version'],
-                node['client_version'],
-                node['country_iso'],
-                node['country_name'],
-                node['city'],
-                node['isp_cloud']]
+                node.get('uptime_thirty_days', '100.00%')]
+
+            if not is_merged_export:
+                output_data.append(node['last_block'])
+                output_data.append(node['protocol_version'])
+                output_data.append(node['client_version'])
+
+            output_data.append(node['country_iso'])
+            output_data.append(node['country_name'])
+            output_data.append(node['city'])
+            output_data.append(node['isp_cloud'])
 
             is_synced = abs(median_block_height - node['last_block']) <= \
                         config['max_block_height_difference']
             output_data.append(1 if is_synced else 0)
 
-            if indicate_dash_masternodes and node['is_masternode'] is not None:
+            if node['is_masternode'] is not None:
                 output_data.append(node['is_masternode'])
 
             if is_synced or config['include_out_of_sync']:
@@ -239,22 +242,44 @@ def export_coin_nodes(timestamp, config, export_dir, indicate_dash_masternodes):
     logging.info("Export took %d seconds", time.time() - start)
     logging.info("Wrote %s and %s", csv_path, txt_path)
 
+    return csv_path, txt_path
+
+
+def remove_duplicate_nodes(file_path):
+    with open(file_path, "r+") as file:
+        lines = file.readlines()
+        file.seek(0)
+        node_ip_addresses = []
+        for l in lines:
+            ip = l.split(':', 1)[0]
+            if not ip in node_ip_addresses:
+                file.write(l)
+            node_ip_addresses.append(ip)
+        file.truncate()
+
 
 def export_all_nodes(timestamp, meta_conf):
+    redis_conn = new_redis_conn(db=0)
+    redis_conn.incr(CONF['coin_name'] + '_crawls', 1)
     conf = ConfigParser()
     conf.read(meta_conf)
     all_coins = conf.get('meta', 'enabled_coins').strip().split(',')
     for coin in all_coins:
-        if REDIS_CONN.get(coin + '_crawls') == 0:
+        crawls = redis_conn.get(coin + '_crawls')
+        if crawls is None or crawls == '0':
             return
 
     for coin in all_coins:
-        REDIS_CONN.set(coin + 'crawls', 0)
+        redis_conn.set(coin + '_crawls', 0)
 
     for c in conf.get('meta', 'config_files').strip().split(","):
         coin_conf = utils.parse_config(c, 'export')
-        export_coin_nodes(timestamp, coin_conf, conf.get('meta', 'export_all_dir'),
-                          False)
+        csv_path, txt_path = export_coin_nodes(timestamp, coin_conf,
+                                               conf.get('meta', 'export_all_dir'),
+                                               False)
+
+    remove_duplicate_nodes(csv_path)
+    remove_duplicate_nodes(txt_path)
 
 
 def main(argv):
@@ -292,7 +317,6 @@ def main(argv):
         # 'resolve' message is published by resolve.py after resolving hostname
         # and GeoIP data for all reachable nodes.
         if msg['channel'] == subscribe_key and msg['type'] == 'message':
-            REDIS_CONN.incr(CONF['coin_name'] + '_crawls', 1)
             timestamp = int(msg['data'])  # From ping.py's 'snapshot' message
             logging.info("Timestamp: %d", timestamp)
             nodes = REDIS_CONN.smembers('opendata')

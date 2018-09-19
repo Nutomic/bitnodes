@@ -16,30 +16,34 @@ def start_process(source_file, coin, arg1, out_file):
                      close_fds=True)
 
 
-conf = ConfigParser()
-conf.read('conf/meta.conf')
+def main(coin):
+    conf = ConfigParser()
+    conf.read('conf/meta.conf')
 
-coins = conf.get('meta', 'enabled_coins').strip().split(',')
+    coins = conf.get('meta', 'enabled_coins').strip().split(',')
 
-if sys.argv[1] not in coins:
-    print 'Usage: ./start-coin bitcoin|bitcoincash|dash|litecoin'
-    exit()
+    if coin not in coins:
+        print 'Usage: ./start-coin bitcoin|bitcoincash|dash|litecoin'
+        exit()
 
-coin = sys.argv[1]
+    log_folder = 'log/{}'.format(coin)
+    if not os.path.exists(log_folder):
+        os.makedirs(log_folder)
 
-log_folder = 'log/{}'.format(coin)
-if not os.path.exists(log_folder):
-    os.makedirs(log_folder)
+    start_process('./src/crawl.py', coin, 'master', 'crawl.master.out')
+    start_process('./src/crawl.py', coin, 'slave', 'crawl.slave.1.out')
+    start_process('./src/crawl.py', coin, 'slave', 'crawl.slave.2.out')
 
-start_process('./src/crawl.py', coin, 'master', 'crawl.master.out')
-start_process('./src/crawl.py', coin, 'slave', 'crawl.slave.1.out')
-start_process('./src/crawl.py', coin, 'slave', 'crawl.slave.2.out')
+    start_process('./src/ping.py', coin, 'master', 'crawl.master.out')
+    start_process('./src/ping.py', coin, 'slave', 'crawl.slave.1.out')
+    start_process('./src/ping.py', coin, 'slave', 'crawl.slave.2.out')
+    start_process('./src/ping.py', coin, 'slave', 'crawl.slave.3.out')
 
-start_process('./src/ping.py', coin, 'master', 'crawl.master.out')
-start_process('./src/ping.py', coin, 'slave', 'crawl.slave.1.out')
-start_process('./src/ping.py', coin, 'slave', 'crawl.slave.2.out')
-start_process('./src/ping.py', coin, 'slave', 'crawl.slave.3.out')
+    start_process('./src/resolve.py', coin, str(None), 'resolve.out')
 
-start_process('./src/resolve.py', coin, str(None), 'resolve.out')
+    start_process('./src/export.py', coin, 'conf/meta.conf', 'export.out')
 
-start_process('./src/export.py', coin, 'conf/meta.conf', 'export.out')
+
+if __name__ == '__main__':
+    coin = sys.argv[1] if len(sys.argv) > 1 else ''
+    sys.exit(main(coin))

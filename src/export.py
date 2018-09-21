@@ -258,24 +258,21 @@ def remove_duplicate_nodes(file_path):
         file.truncate()
 
 
-def export_all_nodes(timestamp, meta_conf):
-    redis_conn = new_redis_conn(db=0)
-    redis_conn.incr(CONF['coin_name'] + '_crawls', 1)
-    conf = ConfigParser()
-    conf.read(meta_conf)
-    all_coins = conf.get('meta', 'enabled_coins').strip().split(',')
+def export_all_nodes(timestamp, redis_conn2, meta_conf):
+    redis_conn2.incr(CONF['coin_name'] + '_crawls', 1)
+    all_coins = meta_conf.get('meta', 'enabled_coins').strip().split(',')
     for coin in all_coins:
-        crawls = redis_conn.get(coin + '_crawls')
+        crawls = redis_conn2.get(coin + '_crawls')
         if crawls is None or crawls == '0':
             return
 
     for coin in all_coins:
-        redis_conn.set(coin + '_crawls', 0)
+        redis_conn2.set(coin + '_crawls', 0)
 
-    for c in conf.get('meta', 'config_files').strip().split(","):
+    for c in meta_conf.get('meta', 'config_files').strip().split(","):
         coin_conf = utils.parse_config(c, 'export')
         csv_path, txt_path = export_coin_nodes(timestamp, coin_conf,
-                                               conf.get('meta', 'export_all_dir'),
+                                               meta_conf.get('meta', 'export_all_dir'),
                                                False)
 
     remove_duplicate_nodes(csv_path)
@@ -307,6 +304,13 @@ def main(argv):
     subscribe_key = 'resolve:{}'.format(hexlify(CONF['magic_number']))
     publish_key = 'export:{}'.format(hexlify(CONF['magic_number']))
 
+    meta_conf_parsed = ConfigParser()
+    meta_conf_parsed.read(argv[2])
+    all_coins = meta_conf_parsed.get('meta', 'enabled_coins').strip().split(',')
+    redis_conn2 = new_redis_conn(db=0)
+    for coin in all_coins:
+        redis_conn2.set(coin + '_crawls', 0)
+
     pubsub = REDIS_CONN.pubsub()
     pubsub.subscribe(subscribe_key)
     while True:
@@ -323,7 +327,7 @@ def main(argv):
             logging.info("Nodes: %d", len(nodes))
             store_reachable_nodes(nodes, timestamp)
             export_coin_nodes(timestamp, CONF, CONF['export_dir'], True)
-            export_all_nodes(timestamp, argv[2])
+            export_all_nodes(timestamp, redis_conn2, meta_conf_parsed)
             REDIS_CONN.publish(publish_key, timestamp)
 
     return 0

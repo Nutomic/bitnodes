@@ -81,7 +81,7 @@ def enumerate_node(redis_pipe, addr_msgs, now):
                 age = now - peer['timestamp']  # seconds
 
                 # Add peering node with age <= 24 hours into crawl set
-                if age >= 0 and age <= CONF['max_age']:
+                if 0 <= age <= CONF['max_age']:
                     address = peer['ipv4'] or peer['ipv6'] or peer['onion']
                     port = peer['port'] if peer['port'] > 0 else CONF['port']
                     services = peer['services']
@@ -160,6 +160,13 @@ def connect(redis_conn, key):
 
         version_msg = handshake_msgs[0]
         from_services = version_msg.get('services', 0)
+
+        # Ignore blacklisted user agents
+        for b in CONF['user_agent_blacklist']:
+            if b.lower() in version_msg.get("user_agent").lower():
+                conn.close()
+                return
+
         if from_services != services:
             logging.debug("%s Expected %d, got %d for services", conn.to_addr,
                           services, from_services)
@@ -448,6 +455,7 @@ def init_conf(argv):
     CONF['exclude_ipv4_networks'] = list_excluded_networks(CONF['exclude_ipv4_networks'])
     CONF['exclude_ipv6_networks'] = list_excluded_networks(CONF['exclude_ipv6_networks'])
     CONF['initial_exclude_ipv4_networks'] = CONF['exclude_ipv4_networks']
+    CONF['user_agent_blacklist'] = CONF['user_agent_blacklist'].strip().split("\n")
 
     if CONF['onion']:
         tor_proxy = CONF['tor_proxy'].split(":")

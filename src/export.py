@@ -273,7 +273,7 @@ def export_all_nodes(timestamp, redis_conn2, meta_conf):
         coin_conf = utils.parse_config(c, 'export')
         csv_path, txt_path = export_coin_nodes(timestamp, coin_conf,
                                                meta_conf.get('meta', 'export_all_dir'),
-                                               False)
+                                               True)
 
     remove_duplicate_nodes(csv_path)
     remove_duplicate_nodes(txt_path)
@@ -326,7 +326,7 @@ def main(argv):
             nodes = REDIS_CONN.smembers('opendata')
             logging.info("Nodes: %d", len(nodes))
             store_reachable_nodes(nodes, timestamp)
-            export_coin_nodes(timestamp, CONF, CONF['export_dir'], True)
+            export_coin_nodes(timestamp, CONF, CONF['export_dir'], False)
             export_all_nodes(timestamp, redis_conn2, meta_conf_parsed)
             REDIS_CONN.publish(publish_key, timestamp)
 

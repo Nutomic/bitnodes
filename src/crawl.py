@@ -327,7 +327,7 @@ def set_pending():
         try:
             ipv4_nodes = socket.getaddrinfo(seeder, None, socket.AF_INET)
         except socket.gaierror as err:
-            logging.warning("%s", err)
+            logging.warning("Failed to get nodes from %s: %s", seeder, err)
         else:
             nodes.extend(ipv4_nodes)
 
@@ -335,7 +335,7 @@ def set_pending():
             try:
                 ipv6_nodes = socket.getaddrinfo(seeder, None, socket.AF_INET6)
             except socket.gaierror as err:
-                logging.warning("%s", err)
+                logging.warning("Failed to get nodes from %s: %s", seeder, err)
             else:
                 nodes.extend(ipv6_nodes)
 

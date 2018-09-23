@@ -162,8 +162,9 @@ def connect(redis_conn, key):
         from_services = version_msg.get('services', 0)
 
         # Ignore blacklisted user agents
-        for b in CONF['user_agent_blacklist']:
-            if b.lower() in version_msg.get("user_agent").lower():
+        for item in CONF['user_agent_blacklist']:
+            item = item.strip().lower()
+            if item != '' and item in version_msg.get("user_agent").lower():
                 conn.close()
                 return
 

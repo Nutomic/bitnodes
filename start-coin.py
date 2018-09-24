@@ -38,6 +38,12 @@ def main(coin):
     start_process('./src/ping.py', coin, 'slave', 'crawl.slave.1.out')
     start_process('./src/ping.py', coin, 'slave', 'crawl.slave.2.out')
     start_process('./src/ping.py', coin, 'slave', 'crawl.slave.3.out')
+    start_process('./src/ping.py', coin, 'slave', 'crawl.slave.4.out')
+    start_process('./src/ping.py', coin, 'slave', 'crawl.slave.5.out')
+    start_process('./src/ping.py', coin, 'slave', 'crawl.slave.6.out')
+    start_process('./src/ping.py', coin, 'slave', 'crawl.slave.7.out')
+    start_process('./src/ping.py', coin, 'slave', 'crawl.slave.8.out')
+    start_process('./src/ping.py', coin, 'slave', 'crawl.slave.9.out')
 
     start_process('./src/resolve.py', coin, str(None), 'resolve.out')
 

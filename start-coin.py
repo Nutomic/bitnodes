@@ -5,6 +5,8 @@ import sys
 import subprocess
 from ConfigParser import ConfigParser
 import os
+from os.path import isfile
+from shutil import copyfile
 
 
 def start_process(source_file, coin, arg1, out_file):
@@ -25,6 +27,10 @@ def main(coin):
     if coin not in coins:
         print 'Usage: ./start-coin bitcoin|bitcoincash|dash|litecoin'
         exit()
+
+    coin_conf_file = 'conf/{}.conf'.format(coin)
+    if not isfile(coin_conf_file):
+        copyfile(coin_conf_file + '.default', coin_conf_file)
 
     log_folder = 'log/{}'.format(coin)
     if not os.path.exists(log_folder):

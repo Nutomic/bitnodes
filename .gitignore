@@ -11,3 +11,5 @@ geoip/*.mmdb
 geoip/*.txt
 rsync.sh
 venv/
+
+conf/*.conf

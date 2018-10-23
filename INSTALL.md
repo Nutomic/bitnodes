@@ -15,7 +15,7 @@ and use a key pair instead.
         en_US.UTF-8 UTF-8
         en_US.UTF-8
 
-    # vi /etc/environment
+    # nano /etc/environment
         LC_CTYPE=en_US.UTF-8
 
 #### Configure Timezone
@@ -68,7 +68,7 @@ and use a key pair instead.
         # If you are running as root, you need to specify this explicitly
         root soft nofile 1000000
 
-    # /etc/rc.local
+    # nano /etc/rc.local
         echo never > /sys/kernel/mm/transparent_hugepage/enabled
         echo never > /sys/kernel/mm/transparent_hugepage/defrag
         /sbin/ifconfig eth0 txqueuelen 5000
@@ -95,15 +95,6 @@ Ready, now restart the server
         client-output-buffer-limit slave 512mb 256mb 300
         client-output-buffer-limit pubsub 512mb 256mb 300
         hz 20
-
-#### Install Dash Full Node
-
-    # apt-get install python git unzip pv
-    # git clone https://github.com/moocowmoo/dashman
-    # ./dashman/dashman install
-
-Then wait until `./.dashcore/dash-cli mnsync status` shows "MASTERNODE_SYNC_FINISHED".
-Depending on your hardware and internet connection, this will take roughly 30 minutes.
 
 #### Reboot Server
 

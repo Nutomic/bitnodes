@@ -107,3 +107,8 @@ Ready, now restart the server
     pip install -r requirements.txt
     ./geoip/update.sh
     ./start-all.py
+
+### Launch on Reboot
+
+    nano /etc/cron.d/coincrawler
+        @reboot coincrawler /home/coincrawler/coincrawler/start-all.py

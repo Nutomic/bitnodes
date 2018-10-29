@@ -43,6 +43,7 @@ import sqlite3
 import utils
 import itertools
 from utils import new_redis_conn
+from datetime import datetime
 
 UPTIME_INTERVALS = {'uptime_two_hours': 2 * 60 * 60,
                     'uptime_eight_hours': 8 * 60 * 60,
@@ -178,7 +179,8 @@ def export_coin_nodes(timestamp, config, export_dir, is_merged_export):
     """
     start = time.time()
     utils.create_folder_if_not_exists(export_dir)
-    base_path = os.path.join(export_dir, "{}".format(timestamp))
+    filename = datetime.fromtimestamp(timestamp).strftime('%Y%m%d-%H_%M')
+    base_path = os.path.join(export_dir, "{}".format(filename))
     csv_path = base_path + ".csv"
     txt_path = base_path + ".txt"
 

@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import subprocess
+import psutil
 
-message = 'This will kill all running python2 processes (even those not started by coincrawler. Continue?'
-reply = str(raw_input(message + ' (y/N): ')).lower().strip()
-if len(reply) > 0 and reply[0] == 'y':
-    subprocess.call(['killall', 'python2'])
-else:
-    print 'Doing nothing.'
+for p in psutil.pids():
+    process = psutil.Process(p)
+    cmdline = process.cmdline()
+    local_commands = ('./src/crawl.py', './src/ping.py', './src/resolve.py', './src/export.py')
+    if len(cmdline) > 1 and cmdline[0] == 'python2' and cmdline[1] in local_commands:
+        subprocess.call(['kill', str(p)])

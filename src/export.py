@@ -254,7 +254,7 @@ def remove_duplicate_nodes(file_path):
         node_ip_addresses = []
         for l in lines:
             ip = l.split(':', 1)[0]
-            if not ip in node_ip_addresses:
+            if ip not in node_ip_addresses:
                 file.write(l)
             node_ip_addresses.append(ip)
         file.truncate()
@@ -276,9 +276,8 @@ def export_all_nodes(timestamp, redis_conn2, meta_conf):
         csv_path, txt_path = export_coin_nodes(timestamp, coin_conf,
                                                meta_conf.get('meta', 'export_all_dir'),
                                                True)
-
-    remove_duplicate_nodes(csv_path)
-    remove_duplicate_nodes(txt_path)
+        remove_duplicate_nodes(csv_path)
+        remove_duplicate_nodes(txt_path)
 
 
 def main(argv):
